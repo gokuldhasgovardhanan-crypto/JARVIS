@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>J.A.R.V.I.S. — Personal AI Assistant (Vercel Cloud Edition)</title>
+  <link rel="icon" type="image/x-icon" href="/assets/jarvis_icon.ico">
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="hud-background">
+    <div class="cyber-grid"></div>
+    <div class="ambient-glow"></div>
+  </div>
+
+  <div class="hud-container">
+    <!-- Header Bar -->
+    <header class="hud-header">
+      <div class="title-block">
+        <div class="eyebrow">PERSONAL ARTIFICIAL INTELLIGENCE</div>
+        <h1 class="logo-text">J.A.R.V.I.S.</h1>
+        <div class="subtitle">CLOUD HOLOGRAPHIC COMMAND CENTER • VERCEL EDITION</div>
+      </div>
+      <div class="badge-cluster">
+        <span class="hud-badge pulse" id="badge-cloud">CLOUD: ONLINE</span>
+        <span class="hud-badge" id="badge-stt">STT: WEB SPEECH API</span>
+        <span class="hud-badge" id="badge-lang">LANG: AUTO (10 SUPPORTED)</span>
+      </div>
+    </header>
+
+    <!-- Main Workspace Splitter -->
+    <main class="hud-workspace">
+      <!-- Left Column: Holographic HUD & Audio Controls -->
+      <section class="hud-panel left-panel">
+        <div class="panel-header">NEURAL CORE</div>
+        
+        <!-- Arc Reactor Canvas HUD -->
+        <div class="arc-reactor-wrapper">
+          <canvas id="arcCanvas" width="220" height="220"></canvas>
+          <div class="hud-status-label" id="hudStateLabel">READY</div>
+        </div>
+
+        <!-- Language Policy Selector -->
+        <div class="control-group">
+          <label for="langSelect">RESPONSE LANGUAGE</label>
+          <select id="langSelect" class="hud-select">
+            <option value="auto">Auto Detect (Mirror User)</option>
+            <option value="en">English (en)</option>
+            <option value="ta">Tamil - தமிழ் (ta)</option>
+            <option value="hi">Hindi - हिन्दी (hi)</option>
+            <option value="te">Telugu - తెలుగు (te)</option>
+            <option value="ml">Malayalam - മലയാളം (ml)</option>
+            <option value="kn">Kannada - ಕನ್ನಡ (kn)</option>
+            <option value="de">German - Deutsch (de)</option>
+            <option value="fr">French - Français (fr)</option>
+            <option value="es">Spanish - Español (es)</option>
+            <option value="ja">Japanese - 日本語 (ja)</option>
+          </select>
+        </div>
+
+        <!-- Voice Trigger Buttons -->
+        <div class="control-group buttons-stack">
+          <button id="wakeBtn" class="hud-btn secondary">
+            <span class="btn-icon">⚡</span> ENABLE "HEY JARVIS"
+          </button>
+          <button id="voiceBtn" class="hud-btn primary">
+            <span class="btn-icon">🎤</span> START VOICE INPUT
+          </button>
+          <button id="stopVoiceBtn" class="hud-btn danger">
+            <span class="btn-icon">⏹️</span> STOP SPEAKING
+          </button>
+        </div>
+
+        <!-- System Telemetry Card -->
+        <div class="telemetry-card">
+          <div class="telemetry-title">TELEMETRY</div>
+          <div class="telemetry-row">
+            <span>PLATFORM:</span>
+            <span class="cyan">VERCEL SERVERLESS</span>
+          </div>
+          <div class="telemetry-row">
+            <span>LANGUAGES:</span>
+            <span class="cyan">10 ACTIVE</span>
+          </div>
+          <div class="telemetry-row">
+            <span>ENCRYPTION:</span>
+            <span class="green">TLS 1.3 ACTIVE</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Conversation Console & Command Bar -->
+      <section class="hud-panel console-panel">
+        <div class="panel-header console-header-flex">
+          <span>HOLOGRAPHIC CONVERSATION STREAM</span>
+          <button id="clearChatBtn" class="hud-mini-btn">CLEAR STREAM</button>
+        </div>
+
+        <!-- Chat Log Stream -->
+        <div class="chat-stream" id="chatStream">
+          <div class="chat-message jarvis-msg">
+            <div class="msg-header">
+              <span class="speaker">JARVIS</span>
+              <span class="meta-tag">[SYSTEM BOOT]</span>
+              <span class="time" id="bootTime"></span>
+            </div>
+            <div class="msg-body">
+              Core neural systems online. Vercel Cloud Serverless Edition ready.<br>
+              Tap the <b>Microphone</b>, say <b>"Hey Jarvis"</b>, or type your query in English, Tamil, Hindi, Telugu, German, French, Spanish, or Japanese.
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Action Chips -->
+        <div class="chips-container">
+          <button class="chip-btn" data-query="what time is it">Time</button>
+          <button class="chip-btn" data-query="what is today's date">Date</button>
+          <button class="chip-btn" data-query="system vitals">System Status</button>
+          <button class="chip-btn" data-query="help">Capabilities</button>
+          <button class="chip-btn" data-query="translate Hello into Tamil">Translate</button>
+          <button class="chip-btn" data-query="neram enna">Tamil Query</button>
+          <button class="chip-btn" data-query="samay batao">Hindi Query</button>
+          <button class="chip-btn" data-query="wie spät ist es">German Query</button>
+        </div>
+
+        <!-- Interactive Input Bar -->
+        <div class="input-bar">
+          <input type="text" id="commandInput" class="hud-input" placeholder="Transmit command or query (e.g. 'what time is it', 'translate Welcome into Hindi')...">
+          <button id="sendBtn" class="hud-btn primary send-btn">TRANSMIT</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
