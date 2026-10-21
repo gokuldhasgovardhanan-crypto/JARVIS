@@ -65,6 +65,14 @@ class JarvisConfig:
             "https://weather.com",
             "https://reddit.com",
             "https://stackoverflow.com",
+            "https://web.whatsapp.com",
+            "https://mail.google.com",
+            "https://netflix.com",
+            "https://amazon.com",
+            "https://twitter.com",
+            "https://x.com",
+            "https://instagram.com",
+            "https://chat.openai.com",
         ]
     )
     approved_apps: dict[str, str] = field(
@@ -82,6 +90,44 @@ class JarvisConfig:
             "taskmgr": "taskmgr.exe",
             "terminal": "wt.exe",
             "control panel": "control.exe",
+            # Messaging & Communication
+            "whatsapp": "whatsapp:",
+            "whatsapp desktop": "whatsapp:",
+            "teams": "ms-teams:",
+            "ms teams": "ms-teams:",
+            "discord": "discord.exe",
+            "telegram": "telegram.exe",
+            # Browsers
+            "chrome": "chrome.exe",
+            "google chrome": "chrome.exe",
+            "edge": "msedge.exe",
+            "microsoft edge": "msedge.exe",
+            "brave": "brave.exe",
+            "brave browser": "brave.exe",
+            "firefox": "firefox.exe",
+            # Productivity & Development
+            "code": "code.cmd",
+            "vscode": "code.cmd",
+            "vs code": "code.cmd",
+            "word": "winword.exe",
+            "winword": "winword.exe",
+            "excel": "excel.exe",
+            "powerpoint": "powerpnt.exe",
+            "ppt": "powerpnt.exe",
+            "onenote": "onenote.exe",
+            "wps": "wps.exe",
+            # Multimedia & Utilities
+            "spotify": "spotify:",
+            "vlc": "vlc.exe",
+            "snipping tool": "snippingtool.exe",
+            "snip": "snippingtool.exe",
+            "settings": "ms-settings:",
+            "windows settings": "ms-settings:",
+            "camera": "microsoft.windows.camera:",
+            "clock": "ms-clock:",
+            "store": "ms-windows-store:",
+            "microsoft store": "ms-windows-store:",
+            "photos": "ms-photos:",
         }
     )
     

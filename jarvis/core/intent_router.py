@@ -3,6 +3,7 @@ import re
 from typing import Optional, Dict, Any, List
 from jarvis.core.command_registry import CommandRegistry, Command, ActionResult
 from jarvis.automation.windows_actions import WindowsActionRunner
+from jarvis.automation.permissions import PermissionGate
 from jarvis.memory.repository import MemoryRepository
 from jarvis.languages.registry import language_registry
 from jarvis.utils.diagnostics import get_system_diagnostics
@@ -157,7 +158,66 @@ class IntentRouter:
             )
         )
 
-        # 8. Open YouTube
+        # 8. Open WhatsApp
+        self.registry.register(
+            Command(
+                intent="open_whatsapp",
+                description="Launches WhatsApp Desktop application.",
+                handler=lambda **kw: ActionResult(**self.actions.launch_app("whatsapp")),
+                multilingual_examples={
+                    "en": ["open whatsapp", "launch whatsapp", "start whatsapp"],
+                    "ta": ["whatsapp open pannu", "whatsapp theravum", "வாட்ஸ்அப் திற"],
+                    "hi": ["whatsapp kholo", "whatsapp open karo", "व्हाट्सएप खोलो"],
+                    "te": ["whatsapp open cheyi", "whatsapp theruvu"],
+                    "ml": ["whatsapp open cheyyu", "whatsapp thurakku"],
+                    "kn": ["whatsapp open maadu", "whatsapp there"],
+                    "de": ["öffne whatsapp", "whatsapp starten"],
+                    "fr": ["ouvre whatsapp", "lance whatsapp"],
+                    "es": ["abre whatsapp", "iniciar whatsapp"],
+                    "ja": ["whatsappを開いて", "ワッツアップを開いて"],
+                },
+            )
+        )
+
+        # 9. Send WhatsApp Message
+        self.registry.register(
+            Command(
+                intent="whatsapp_send_message",
+                description="Sends a WhatsApp message to a contact or phone number.",
+                handler=lambda **kw: ActionResult(
+                    **self.actions.send_whatsapp_message(
+                        kw.get("contact", ""), kw.get("text", kw.get("message", ""))
+                    )
+                ),
+                multilingual_examples={
+                    "en": ["send whatsapp message to <contact> saying <text>", "whatsapp <contact> <text>"],
+                    "ta": ["whatsapp la message anupu <text>", "whatsapp pannu <text>"],
+                    "hi": ["whatsapp par message bhejo <text>"],
+                    "te": ["whatsapp lo message pampu <text>"],
+                    "de": ["sende whatsapp nachricht an <contact> <text>"],
+                },
+            )
+        )
+
+        # 10. Take Screenshot
+        self.registry.register(
+            Command(
+                intent="take_screenshot",
+                description="Captures a screen screenshot via Windows Snipping Tool.",
+                handler=lambda **kw: ActionResult(**self.actions.take_screenshot()),
+                multilingual_examples={
+                    "en": ["take screenshot", "capture screen", "screenshot"],
+                    "ta": ["screenshot edu", "screen capture pannu"],
+                    "hi": ["screenshot lo", "screenshot khincho"],
+                    "de": ["screenshot machen", "bildschirmfoto aufnehmen"],
+                    "fr": ["faire une capture d'écran"],
+                    "es": ["tomar captura de pantalla"],
+                    "ja": ["スクリーンショットを撮って"],
+                },
+            )
+        )
+
+        # 11. Open YouTube
         self.registry.register(
             Command(
                 intent="open_youtube",
@@ -741,19 +801,59 @@ class IntentRouter:
             target_alias = folder_m.group(1).strip()
             return self._handle_open_folder(target_alias)
 
-        # 7. Dynamic App Launch: "open <app>", "<app> open pannu", "<app> kholo", "öffne <app>"
-        app_open_m = re.match(r"^(?:open|launch|start|run)\s+([a-zA-Z\s]+)$", low)
+        # 7. WhatsApp Message Pattern: "send whatsapp message to X saying Y"
+        wa_res = self._handle_whatsapp_message(query)
+        if wa_res:
+            return wa_res
+
+        # 8. Screenshot Capture Pattern
+        if any(p in low for p in [
+            "take screenshot", "take a screenshot", "capture screen", "screenshot edu",
+            "screenshot lo", "screen capture", "bildschirmfoto", "capture d'écran", "スクリーンショット"
+        ]):
+            res = self.actions.take_screenshot()
+            return ActionResult(success=res["success"], message=res["message"], intent="take_screenshot")
+
+        # 9. Dynamic App Launch: "open <app>", "<app> open pannu", "<app> kholo", "öffne <app>"
+        app_open_m = re.match(r"^(?:open|launch|start|run)\s+([a-zA-Z0-9\s]+)$", low)
         if not app_open_m:
-            app_open_m = re.match(r"^([a-zA-Z\s]+)\s+(?:open\s+pannu|kholo|open\s+karo|open\s+cheyi|thurakku|open\s+maadu|öffnen)$", low)
+            app_open_m = re.match(r"^([a-zA-Z0-9\s]+)\s+(?:open\s+pannu|kholo|open\s+karo|open\s+cheyi|thurakku|open\s+maadu|öffnen)$", low)
         if not app_open_m:
-            app_open_m = re.match(r"^(?:öffne|ouvre|abre)\s+([a-zA-Z\s]+)$", low)
+            app_open_m = re.match(r"^(?:öffne|ouvre|abre)\s+([a-zA-Z0-9\s]+)$", low)
         if app_open_m:
             candidate_app = app_open_m.group(1).strip().lower()
-            if candidate_app in config.approved_apps:
+            allowed, _ = PermissionGate.is_app_allowed(candidate_app)
+            if allowed:
                 res = self.actions.launch_app(candidate_app)
                 return ActionResult(success=res["success"], message=res["message"], intent=f"open_{candidate_app}")
 
-        # 8. Match against registered multilingual examples
+        # 10. Dynamic Website / URL Open
+        web_m = re.match(r"^(?:open|go\s+to|navigate\s+to)\s+(?:the\s+)?(?:website\s+)?(\S+)(?:\s+website)?$", low)
+        if web_m:
+            target_site = web_m.group(1).strip()
+            site_aliases = {
+                "youtube": "https://www.youtube.com",
+                "google": "https://www.google.com",
+                "github": "https://github.com",
+                "reddit": "https://reddit.com",
+                "twitter": "https://twitter.com",
+                "x": "https://x.com",
+                "instagram": "https://instagram.com",
+                "facebook": "https://facebook.com",
+                "netflix": "https://netflix.com",
+                "amazon": "https://amazon.com",
+                "gmail": "https://mail.google.com",
+                "chatgpt": "https://chat.openai.com",
+                "whatsapp web": "https://web.whatsapp.com",
+            }
+            if target_site in site_aliases:
+                res = self.actions.open_website(site_aliases[target_site])
+                return ActionResult(success=res["success"], message=res["message"], intent="open_website")
+            elif target_site.startswith("http") or ("." in target_site and not target_site.endswith(".")):
+                res = self.actions.open_website(target_site)
+                return ActionResult(success=res["success"], message=res["message"], intent="open_website")
+
+        # 11. Match against registered multilingual examples
         for cmd in self.registry.all_commands():
             for lang, examples in cmd.multilingual_examples.items():
                 for ex in examples:
@@ -767,5 +867,120 @@ class IntentRouter:
                         if res and not res.intent:
                             res.intent = cmd.intent
                         return res
+
+        return None
+
+    def _handle_whatsapp_message(self, text: str) -> Optional[ActionResult]:
+        """Parses WhatsApp message requests across English, Tamil, Hindi, and other languages."""
+        # 1. English patterns: "send whatsapp message to John saying Hello there"
+        m = re.match(
+            r"^(?:please\s+)?(?:send\s+(?:a\s+)?)?whatsapp(?:\s+message)?\s+(?:to\s+)?([^:]+?)(?:\s+(?:saying|that|with\s+text)\s*|:\s*)(.+)$",
+            text,
+            re.IGNORECASE,
+        )
+        if not m:
+            m = re.match(
+                r"^(?:please\s+)?whatsapp\s+([^:]+?)(?:\s+(?:saying|that)\s*|:\s*)(.+)$",
+                text,
+                re.IGNORECASE,
+            )
+
+        # 2. Tamil patterns:
+        # SVO: "whatsapp-la John-ku anupu Hello"
+        # SOV: "whatsapp-la Suresh-ku Kalai vanakkam anupu"
+        if not m:
+            m = re.match(
+                r"^(?:whatsapp(?:-la|-le|\s+la)?\s+)?(.+?)(?:-ku|-kku|\s+ku|\s+kku)\s+(.+?)\s+(?:anupu|whatsapp\s+pannu|send\s+pannu)$",
+                text,
+                re.IGNORECASE,
+            )
+        if not m:
+            m = re.match(
+                r"^(?:whatsapp(?:-la|-le|\s+la)?\s+)?(.+?)(?:-ku|-kku|\s+ku|\s+kku)\s+(?:whatsapp\s+pannu|message\s+anupu|anupu)\s+(.+)$",
+                text,
+                re.IGNORECASE,
+            )
+        if not m:
+            m = re.match(
+                r"^whatsapp(?:-la|-le|\s+la)?\s+(.+?)(?:-ku|-kku|\s+ku|\s+kku)?\s+(?:message\s+)?anupu\s+(.+)$",
+                text,
+                re.IGNORECASE,
+            )
+
+        # 3. Hindi patterns:
+        # SOV: "whatsapp par Rahul ko Namaste bhejo"
+        # SVO: "whatsapp par Rahul ko bhejo Namaste"
+        if not m:
+            m = re.match(
+                r"^(?:whatsapp(?:\s+par|\s+pe)?\s+)?(.+?)(?:\s+ko)?\s+(.+?)\s+(?:bhejo|send\s+karo)$",
+                text,
+                re.IGNORECASE,
+            )
+        if not m:
+            m = re.match(
+                r"^whatsapp(?:\s+par|\s+pe)?\s+(.+?)(?:\s+ko)?\s+(?:message\s+)?bhejo\s+(.+)$",
+                text,
+                re.IGNORECASE,
+            )
+
+        # 4. Telugu patterns:
+        # SOV: "whatsapp lo Ravi ki Hello pampu"
+        if not m:
+            m = re.match(
+                r"^(?:whatsapp(?:\s+lo)?\s+)?(.+?)(?:\s+ki)?\s+(.+?)\s+(?:pampu|send\s+cheyi)$",
+                text,
+                re.IGNORECASE,
+            )
+        if not m:
+            m = re.match(
+                r"^whatsapp(?:\s+lo)?\s+(.+?)(?:\s+ki)?\s+(?:message\s+)?pampu\s+(.+)$",
+                text,
+                re.IGNORECASE,
+            )
+
+        # 5. European languages (German, French, Spanish)
+        if not m:
+            m = re.match(
+                r"^(?:sende\s+(?:eine\s+)?)?whatsapp(?:\s+nachricht)?\s+an\s+(.+?)(?:\s+mit|:\s*)(.+)$",
+                text,
+                re.IGNORECASE,
+            )
+        if not m:
+            m = re.match(
+                r"^(?:envoie\s+(?:un\s+)?)?message\s+whatsapp\s+à\s+(.+?)(?:\s+dire|:\s*)(.+)$",
+                text,
+                re.IGNORECASE,
+            )
+        if not m:
+            m = re.match(
+                r"^(?:envía\s+(?:un\s+)?)?mensaje\s+de\s+whatsapp\s+a\s+(.+?)(?:\s+diciendo|:\s*)(.+)$",
+                text,
+                re.IGNORECASE,
+            )
+
+        if m:
+            contact = m.group(1).strip().strip("'\"")
+            msg_text = m.group(2).strip().strip("'\"")
+            if contact and msg_text:
+                res = self.actions.send_whatsapp_message(contact, msg_text, auto_send=True)
+                return ActionResult(
+                    success=res["success"],
+                    message=res["message"],
+                    intent="whatsapp_send_message",
+                    data={"contact": contact, "text": msg_text},
+                )
+
+        # If user simply requests opening chat for contact without prefilled text:
+        low = text.lower().strip()
+        simple_m = re.match(r"^(?:send\s+(?:a\s+)?)?whatsapp(?:\s+message)?\s+to\s+([a-zA-Z0-9\s+]+)$", low)
+        if simple_m:
+            contact = simple_m.group(1).strip()
+            res = self.actions.send_whatsapp_message(contact, "", auto_send=False)
+            return ActionResult(
+                success=res["success"],
+                message=f"Opening WhatsApp for {contact}. Ready to compose message.",
+                intent="whatsapp_open_contact",
+                data={"contact": contact},
+            )
 
         return None

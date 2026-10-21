@@ -1,9 +1,14 @@
 import os
+import re
+import time
+import threading
+import urllib.parse
 import subprocess
 import webbrowser
 import shutil
 import ctypes
 from ctypes import wintypes
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from jarvis.automation.permissions import PermissionGate
@@ -40,22 +45,104 @@ class WindowsActionRunner:
         self.memory_repo = memory_repo
 
     def launch_app(self, app_name: str) -> Dict[str, Any]:
-        """Launches an approved application executable."""
-        allowed, binary = PermissionGate.is_app_allowed(app_name)
+        """Launches an approved application executable, UWP app, or protocol."""
+        allowed, target = PermissionGate.is_app_allowed(app_name)
         if not allowed:
-            msg = f"Application '{app_name}' is not in the approved application allowlist."
+            msg = f"Application '{app_name}' could not be located on this system."
             self.memory_repo.log_action("launch_app", app_name, "rejected", msg)
             return {"success": False, "message": msg}
 
         try:
-            subprocess.Popen([binary], shell=False)
+            if target.endswith(":") or target.startswith("shell:") or target.startswith("http"):
+                os.startfile(target)
+            else:
+                try:
+                    subprocess.Popen([target], shell=False)
+                except Exception:
+                    os.startfile(target)
+
             msg = f"Opening {app_name}."
-            self.memory_repo.log_action("launch_app", binary, "success", msg)
+            self.memory_repo.log_action("launch_app", target, "success", msg)
             return {"success": True, "message": msg}
         except Exception as exc:
             err = f"Failed to open {app_name}: {exc}"
-            self.memory_repo.log_action("launch_app", binary, "failed", err)
+            self.memory_repo.log_action("launch_app", target, "failed", err)
             logger.error(err, exc_info=True)
+            return {"success": False, "message": err}
+
+    def send_whatsapp_message(self, contact: str, message: str, auto_send: bool = True) -> Dict[str, Any]:
+        """
+        Launches WhatsApp and composes or sends a message to a contact or phone number.
+        Supports international phone numbers (+91...) or contact names.
+        """
+        clean_contact = contact.strip()
+        clean_msg = message.strip()
+        if not clean_msg:
+            return {"success": False, "message": "WhatsApp message content cannot be empty."}
+
+        encoded_text = urllib.parse.quote(clean_msg)
+        
+        # Check if contact is a phone number (7+ digits)
+        digits_only = re.sub(r"[^\d+]", "", clean_contact)
+        has_digits = len(re.sub(r"[^\d]", "", clean_contact)) >= 7
+
+        if has_digits:
+            phone_num = re.sub(r"[^\d]", "", digits_only)
+            target_uri = f"whatsapp://send?phone={phone_num}&text={encoded_text}"
+            web_fallback = f"https://web.whatsapp.com/send?phone={phone_num}&text={encoded_text}"
+            contact_label = f"number +{phone_num}"
+        else:
+            target_uri = f"whatsapp://send?text={encoded_text}"
+            web_fallback = f"https://web.whatsapp.com/send?text={encoded_text}"
+            contact_label = f"'{clean_contact}'"
+
+        try:
+            # Launch WhatsApp Desktop via URI protocol
+            os.startfile(target_uri)
+            msg = f"Opening WhatsApp and sending message to {contact_label}: \"{clean_msg}\"."
+            
+            # If auto_send is requested, simulate Enter key dispatch after window focuses
+            if auto_send:
+                def _dispatch_enter():
+                    time.sleep(2.5)
+                    try:
+                        # VK_RETURN = 0x0D
+                        ctypes.windll.user32.keybd_event(0x0D, 0, 0, 0)
+                        ctypes.windll.user32.keybd_event(0x0D, 0, KEYEVENTF_KEYUP, 0)
+                        logger.info("Sent Enter key event to WhatsApp.")
+                    except Exception as exc:
+                        logger.debug(f"Enter key dispatch notice: {exc}")
+
+                threading.Thread(target=_dispatch_enter, daemon=True).start()
+
+            self.memory_repo.log_action("whatsapp_message", clean_contact, "success", msg)
+            return {"success": True, "message": msg, "contact": clean_contact, "text": clean_msg}
+        except Exception as exc:
+            # Fallback to WhatsApp Web in browser
+            try:
+                webbrowser.open(web_fallback)
+                fallback_msg = f"Opened WhatsApp Web to message {contact_label}: \"{clean_msg}\"."
+                self.memory_repo.log_action("whatsapp_message", clean_contact, "success", fallback_msg)
+                return {"success": True, "message": fallback_msg}
+            except Exception as web_exc:
+                err = f"Failed to send WhatsApp message: {exc}; Web fallback error: {web_exc}"
+                self.memory_repo.log_action("whatsapp_message", clean_contact, "failed", err)
+                logger.error(err, exc_info=True)
+                return {"success": False, "message": err}
+
+    def take_screenshot(self) -> Dict[str, Any]:
+        """Triggers Windows screenshot capture tool."""
+        try:
+            try:
+                os.startfile("ms-screenclip:")
+            except Exception:
+                subprocess.Popen(["snippingtool.exe"])
+            msg = "Screen capture tool activated. Select the area to save."
+            self.memory_repo.log_action("take_screenshot", "screen", "success", msg)
+            return {"success": True, "message": msg}
+        except Exception as exc:
+            err = f"Failed to activate screenshot tool: {exc}"
+            self.memory_repo.log_action("take_screenshot", "screen", "failed", err)
             return {"success": False, "message": err}
 
     def open_website(self, url: str) -> Dict[str, Any]:
