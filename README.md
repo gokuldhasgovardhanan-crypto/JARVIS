@@ -172,7 +172,14 @@ Double-click `Launch_JARVIS_Silent.vbs` or `Launch_JARVIS.bat`.
 
 ### 3. Windows 11 Automation Commands
 Personal JARVIS includes sandboxed automation for Windows 11:
-- **Application Launching**: "open notepad", "open calculator", "open paint", "open task manager", "open terminal", "notepad open pannu", "calculator kholo".
+- **WhatsApp Messaging & Desktop Automation**:
+  - Open WhatsApp: `"open whatsapp"`, `"whatsapp open pannu"`, `"whatsapp kholo"`, `"öffne whatsapp"`.
+  - Send WhatsApp Message: `"send whatsapp message to John saying Hello, how are you?"`, `"send whatsapp message to +919876543210: Meeting confirmed at 4 PM"`.
+  - Multilingual WhatsApp: `"whatsapp-la Suresh-ku Kalai vanakkam anupu"`, `"whatsapp par Rahul ko Namaste bhejo"`, `"whatsapp lo Ravi ki Hello pampu"`.
+- **System-Wide Application Launching**: Dynamically discovers and opens any software installed on your system via Windows Registry App Paths, UWP protocols, and PATH:
+  - Examples: `"open whatsapp"`, `"open chrome"`, `"open brave"`, `"open vscode"`, `"open code"`, `"open spotify"`, `"open word"`, `"open excel"`, `"open powerpoint"`, `"open teams"`, `"open settings"`, `"open terminal"`, `"open notepad"`, `"open calculator"`.
+- **Screen Capture & Screenshots**: `"take screenshot"`, `"screenshot edu"`, `"screenshot lo"`, `"capture screen"` (activates Windows Snipping Tool).
+- **Web Navigation**: `"open youtube"`, `"open whatsapp web"`, `"open google"`, `"open github"`, `"open netflix"`, `"open [any url]"`.
 - **Folder Navigation**: "open downloads folder", "open documents", "open desktop", "downloads open pannu".
 - **File Search**: "search files report", "find file notes", "file thedu project".
 - **Master Volume Control**: "volume up", "volume down", "mute volume", "volume ethu", "volume badhao".
